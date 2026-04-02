@@ -203,6 +203,8 @@ pub fn setup_all_streams(
         "x264enc"
     };
 
+    let has_relay = !config.relay_url.is_empty();
+
     let mut chains = Vec::new();
     for (i, addr) in addresses.iter().enumerate() {
         let source = if config.test_src {
@@ -226,11 +228,36 @@ pub fn setup_all_streams(
             )
         };
 
-        let chain = format!(
-            "{source} ! {encoder} ! rtph264pay config-interval=-1 pt=96 ! \
-             application/x-rtp,media=video,encoding-name=H264,payload=96 ! \
-             tee name=t{i} allow-not-linked=true"
-        );
+        let relay_url = config.relay_url.get(i);
+
+        let chain = if has_relay {
+            // When relay is enabled, tee raw H.264 before RTP packetization:
+            //   encoder → tee (raw)
+            //     ├─ queue → rtph264pay → tee (RTP, for local WebRTC viewers)
+            //     └─ queue → h264parse → flvmux → rtmpsink (RTMP push to MediaMTX)
+            let rtmp_branch = if let Some(url) = relay_url {
+                format!(
+                    " raw_t{i}. ! queue ! h264parse ! flvmux streamable=true ! rtmpsink location={url}",
+                )
+            } else {
+                String::new()
+            };
+
+            format!(
+                "{source} ! {encoder} ! tee name=raw_t{i} allow-not-linked=true \
+                 raw_t{i}. ! queue ! rtph264pay config-interval=-1 pt=96 ! \
+                 application/x-rtp,media=video,encoding-name=H264,payload=96 ! \
+                 tee name=t{i} allow-not-linked=true\
+                 {rtmp_branch}"
+            )
+        } else {
+            // Original pipeline: no relay, tee after RTP packetization
+            format!(
+                "{source} ! {encoder} ! rtph264pay config-interval=-1 pt=96 ! \
+                 application/x-rtp,media=video,encoding-name=H264,payload=96 ! \
+                 tee name=t{i} allow-not-linked=true"
+            )
+        };
 
         debug!("Stream {i}: {chain}");
         chains.push(chain);
@@ -278,6 +305,12 @@ pub fn setup_all_streams(
             stun_server: config.stun_server.clone(),
             stream_index: i,
         });
+    }
+
+    if has_relay {
+        for (i, url) in config.relay_url.iter().enumerate() {
+            info!("Stream {i}: RTMP relay → {url}");
+        }
     }
 
     Ok((pipeline, handles, bus_watch))

@@ -21,4 +21,7 @@ pub struct Config {
 
     #[arg(long, default_value_t = false)]
     pub local: bool,
+
+    #[arg(long)]
+    pub relay_url: Vec<String>,
 }

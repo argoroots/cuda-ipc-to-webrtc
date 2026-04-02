@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mediamtx-config
+  namespace: oden-streaming
+data:
+  mediamtx.yml: |
+    # Log level: debug, info, warn, error
+    logLevel: info
+
+    # RTMP server (ingress from local PC)
+    rtmpAddress: :1935
+
+    # HLS server (viewer output)
+    hlsAddress: :8888
+    hlsVariant: lowLatency
+    hlsSegmentCount: 3
+    hlsSegmentDuration: 1s
+    hlsAllowOrigin: "*"
+
+    # WebRTC / WHEP server (low-latency viewer output)
+    webrtcAddress: :8889
+
+    # Paths — wildcard accepts any stream name pushed via RTMP
+    paths:
+      all_others:
+        source: publisher

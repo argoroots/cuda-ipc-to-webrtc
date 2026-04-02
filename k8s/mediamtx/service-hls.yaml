@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mediamtx-hls
+  namespace: oden-streaming
+  labels:
+    app: mediamtx
+spec:
+  type: ClusterIP
+  selector:
+    app: mediamtx
+  ports:
+    - name: hls
+      port: 8888
+      targetPort: hls
+      protocol: TCP
+    - name: webrtc
+      port: 8889
+      targetPort: webrtc
+      protocol: TCP
