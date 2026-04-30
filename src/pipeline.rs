@@ -213,7 +213,11 @@ pub fn setup_all_streams(
                 pattern = i % 25,
             )
         } else {
-            format!("cudaipcsrc address={addr}",)
+            format!(
+                "cudaipcsrc address={addr} ! \
+                 cudadownload ! videorate drop-only=true ! video/x-raw,framerate=30/1 ! \
+                 cudaupload ! video/x-raw(memory:CUDAMemory),format=NV12"
+            )
         };
 
         let encoder = if encoder_name == "nvcudah264enc" {
