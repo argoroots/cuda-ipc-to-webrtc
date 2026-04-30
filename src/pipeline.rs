@@ -216,7 +216,7 @@ pub fn setup_all_streams(
             format!(
                 "cudaipcsrc address={addr} ! \
                  cudadownload ! videorate drop-only=true ! video/x-raw,framerate=30/1 ! \
-                 cudaupload ! video/x-raw(memory:CUDAMemory),format=NV12"
+                 cudaupload"
             )
         };
 
